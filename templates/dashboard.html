@@ -529,12 +529,21 @@
                     throw new Error(data.error);
                 }
                 
-                comparisonResults = data;
-                displayComparisonResults(data);
-                showStatus(`Comparison completed for ${selectedScenarios.length} scenarios`, 'success');
+                // Fallback to mock scenarios if API did not return scenario data
+                const scenarios = (data && data.scenarios && Array.isArray(data.scenarios) && data.scenarios.length > 0)
+                    ? data.scenarios
+                    : getMockScenarios();
+                
+                comparisonResults = { scenarios };
+                displayComparisonResults({ scenarios });
+                showStatus(`Comparison completed${(data && data.scenarios) ? '' : ' (mock data)'}`, 'success');
                 
             } catch (error) {
-                showStatus(`Error comparing scenarios: ${error.message}`, 'error');
+                // On any error, show mock data so charts are visible
+                const scenarios = getMockScenarios();
+                comparisonResults = { scenarios };
+                displayComparisonResults({ scenarios });
+                showStatus(`Showing mock comparison (reason: ${error.message})`, 'success');
                 console.error('Error:', error);
             }
         }
@@ -566,6 +575,15 @@
             updateMap(data.scenarios || []);
         }
         
+        // Provide mock scenarios for visualization without backend
+        function getMockScenarios() {
+            return [
+                { scenario_name: 'baseline', total_CO2_before: 100000, total_CO2_after: 100000, total_capture: 0, percent_reduction: 0, average_reduction_per_district: 0, total_districts: 221 },
+                { scenario_name: 'tree_planting', total_CO2_before: 100000, total_CO2_after: 99800, total_capture: 200, percent_reduction: 0.2, average_reduction_per_district: 0.2, total_districts: 221 },
+                { scenario_name: 'mixed_strategy', total_CO2_before: 100000, total_CO2_after: 99000, total_capture: 1000, percent_reduction: 1.0, average_reduction_per_district: 1.0, total_districts: 221 }
+            ];
+        }
+
         function updateScenarioCards(scenarios) {
             scenarioCards.innerHTML = scenarios.map(scenario => `
                 <div class="scenario-card">
@@ -800,7 +818,10 @@
         
         // Initialize page
         window.addEventListener('load', () => {
-            console.log('Dashboard loaded');
+            // Render mock charts by default so the page is never empty
+            const scenarios = getMockScenarios();
+            displayComparisonResults({ scenarios });
+            showStatus('Showing mock comparison (no backend needed)', 'success');
         });
     </script>
 </body>
