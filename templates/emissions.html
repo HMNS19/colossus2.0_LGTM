@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emission Analysis & CO₂ Dispersion - GreenGrid</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .emission-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .emission-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .emission-header h1 {
+            color: #2c5530;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .emission-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .controls-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c5530;
+        }
+        
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: #2c5530;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1e3a21;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .simulation-controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .results-section {
+            margin-top: 30px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .district-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #2c5530;
+        }
+        
+        .district-card h3 {
+            color: #2c5530;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .emission-breakdown {
+            margin-bottom: 15px;
+        }
+        
+        .emission-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .emission-item:last-child {
+            border-bottom: 2px solid #2c5530;
+            font-weight: bold;
+        }
+        
+        .emission-value {
+            color: #2c5530;
+            font-weight: bold;
+        }
+        
+        .concentration-info {
+            background: #f0f8f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .concentration-info h4 {
+            color: #2c5530;
+            margin-bottom: 8px;
+        }
+        
+        .concentration-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #d32f2f;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2c5530;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .stats-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c5530;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="emission-container">
+        <div class="emission-header">
+            <h1>Emission Analysis & CO₂ Dispersion</h1>
+            <p>Analyze emission data and simulate CO₂ dispersion across Karnataka districts</p>
+        </div>
+        
+        <div class="controls-panel">
+            <h3>Simulation Controls</h3>
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="year">Year:</label>
+                    <select id="year">
+                        <option value="2015">2015</option>
+                        <option value="2016">2016</option>
+                        <option value="2017">2017</option>
+                        <option value="2018">2018</option>
+                        <option value="2019">2019</option>
+                        <option value="2020">2020</option>
+                        <option value="2021">2021</option>
+                        <option value="2022">2022</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025" selected>2025</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="steps">Simulation Steps:</label>
+                    <input type="number" id="steps" value="20" min="1" max="100">
+                </div>
+                <div class="control-group">
+                    <label for="windSpeed">Wind Speed (m/s):</label>
+                    <input type="number" id="windSpeed" value="5" min="0" max="20" step="0.5">
+                </div>
+                <div class="control-group">
+                    <label for="windDirection">Wind Direction:</label>
+                    <select id="windDirection">
+                        <option value="N">North</option>
+                        <option value="NE" selected>Northeast</option>
+                        <option value="E">East</option>
+                        <option value="SE">Southeast</option>
+                        <option value="S">South</option>
+                        <option value="SW">Southwest</option>
+                        <option value="W">West</option>
+                        <option value="NW">Northwest</option>
+                    </select>
+                </div>
+            </div>
+            <div class="simulation-controls">
+                <button id="loadEmissions" class="btn">Load Emission Data</button>
+                <button id="runSimulation" class="btn" disabled>Run CO₂ Dispersion Simulation</button>
+                <button id="resetData" class="btn">Reset</button>
+            </div>
+        </div>
+        
+        <div id="statusMessage"></div>
+        
+        <div id="statsSummary" class="stats-summary" style="display: none;">
+            <h3>Emission Statistics Summary</h3>
+            <div class="stats-grid" id="statsGrid"></div>
+        </div>
+        
+        <div id="resultsSection" class="results-section" style="display: none;">
+            <h3>District Emission Data & CO₂ Concentrations</h3>
+            <div id="resultsGrid" class="results-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        let simulationResults = null;
+        
+        // DOM elements
+        const loadEmissionsBtn = document.getElementById('loadEmissions');
+        const runSimulationBtn = document.getElementById('runSimulation');
+        const resetDataBtn = document.getElementById('resetData');
+        const statusMessage = document.getElementById('statusMessage');
+        const statsSummary = document.getElementById('statsSummary');
+        const statsGrid = document.getElementById('statsGrid');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsGrid = document.getElementById('resultsGrid');
+        
+        // Event listeners
+        loadEmissionsBtn.addEventListener('click', loadEmissionData);
+        runSimulationBtn.addEventListener('click', runDispersionSimulation);
+        resetDataBtn.addEventListener('click', resetData);
+        
+        function showStatus(message, type = 'info') {
+            statusMessage.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        function showLoading() {
+            showStatus('Loading...', 'loading');
+        }
+        
+        async function loadEmissionData() {
+            showLoading();
+            
+            try {
+                const year = document.getElementById('year').value;
+                const response = await fetch(`/api/emissions/all?year=${year}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                currentData = data;
+                displayEmissionData(data);
+                runSimulationBtn.disabled = false;
+                showStatus(`Loaded emission data for ${data.total_districts} districts`, 'success');
+                
+            } catch (error) {
+                showStatus(`Error loading emission data: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function displayEmissionData(data) {
+            // Calculate statistics
+            const districts = data.districts;
+            const totalTransport = districts.reduce((sum, d) => sum + d.transport_emission, 0);
+            const totalIndustrial = districts.reduce((sum, d) => sum + d.industrial_emission, 0);
+            const totalResidential = districts.reduce((sum, d) => sum + d.residential_emission, 0);
+            const totalEmission = totalTransport + totalIndustrial + totalResidential;
+            
+            // Display statistics
+            statsGrid.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${totalEmission.toLocaleString()}</div>
+                    <div class="stat-label">Total Emissions (tons/year)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${totalTransport.toLocaleString()}</div>
+                    <div class="stat-label">Transport Emissions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${totalIndustrial.toLocaleString()}</div>
+                    <div class="stat-label">Industrial Emissions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${totalResidential.toLocaleString()}</div>
+                    <div class="stat-label">Residential Emissions</div>
+                </div>
+            `;
+            statsSummary.style.display = 'block';
+            
+            // Display district cards
+            resultsGrid.innerHTML = districts.map(district => `
+                <div class="district-card">
+                    <h3>${district.district}</h3>
+                    <div class="emission-breakdown">
+                        <div class="emission-item">
+                            <span>Transport:</span>
+                            <span class="emission-value">${district.transport_emission.toLocaleString()} tons/year</span>
+                        </div>
+                        <div class="emission-item">
+                            <span>Industrial:</span>
+                            <span class="emission-value">${district.industrial_emission.toLocaleString()} tons/year</span>
+                        </div>
+                        <div class="emission-item">
+                            <span>Residential:</span>
+                            <span class="emission-value">${district.residential_emission.toLocaleString()} tons/year</span>
+                        </div>
+                        <div class="emission-item">
+                            <span>Total:</span>
+                            <span class="emission-value">${district.total_emission.toLocaleString()} tons/year</span>
+                        </div>
+                    </div>
+                    <div class="concentration-info">
+                        <h4>CO₂ Concentration</h4>
+                        <div class="concentration-value">${(district.total_emission / 100).toFixed(2)} ppm</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsSection.style.display = 'block';
+        }
+        
+        async function runDispersionSimulation() {
+            if (!currentData) {
+                showStatus('Please load emission data first', 'error');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const steps = parseInt(document.getElementById('steps').value);
+                const windSpeed = parseFloat(document.getElementById('windSpeed').value);
+                const windDirection = document.getElementById('windDirection').value;
+                const year = document.getElementById('year').value;
+                
+                const response = await fetch('/api/dispersion/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        steps: steps,
+                        wind_speed: windSpeed,
+                        wind_direction: windDirection,
+                        year: year
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                simulationResults = data;
+                displaySimulationResults(data);
+                showStatus(`Simulation completed successfully! Processed ${data.total_districts} districts`, 'success');
+                
+            } catch (error) {
+                showStatus(`Error running simulation: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        }
+        
+        function displaySimulationResults(data) {
+            const results = data.results;
+            
+            // Update district cards with simulation results
+            resultsGrid.innerHTML = results.map(result => `
+                <div class="district-card">
+                    <h3>${result.district}</h3>
+                    <div class="emission-breakdown">
+                        <div class="emission-item">
+                            <span>Initial CO₂:</span>
+                            <span class="emission-value">${result.initial_concentration.toLocaleString()} ppm</span>
+                        </div>
+                        <div class="emission-item">
+                            <span>Final CO₂:</span>
+                            <span class="emission-value">${result.final_concentration.toLocaleString()} ppm</span>
+                        </div>
+                        <div class="emission-item">
+                            <span>Change:</span>
+                            <span class="emission-value">${(result.final_concentration - result.initial_concentration).toFixed(2)} ppm</span>
+                        </div>
+                        <div class="emission-item">
+                            <span>Total Emission:</span>
+                            <span class="emission-value">${result.total_emission.toLocaleString()} tons/year</span>
+                        </div>
+                    </div>
+                    <div class="concentration-info">
+                        <h4>Neighbors: ${result.neighbors.length}</h4>
+                        <div style="font-size: 0.9rem; color: #666;">
+                            ${result.neighbors.slice(0, 3).join(', ')}${result.neighbors.length > 3 ? '...' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function resetData() {
+            currentData = null;
+            simulationResults = null;
+            runSimulationBtn.disabled = true;
+            statsSummary.style.display = 'none';
+            resultsSection.style.display = 'none';
+            statusMessage.innerHTML = '';
+        }
+        
+        // Load initial data
+        window.addEventListener('load', () => {
+            loadEmissionData();
+        });
+    </script>
+</body>
+</html>
